@@ -55,7 +55,7 @@ class MappingLayer(nn.Module):
             self.FC.append(EqualizedLinear(inDim, dimLatent, lrMul=0.01, equalized=True, initBiasToZero=True))
             inDim = dimLatent
 
-        self.activation = torch.nn.LeakyReLU(leakyReluLeak)
+        self.activation = torch.nn.LeakyReLU(leakyReluLeak, inplace=False)
 
     def forward(self, x):
         for layer in self.FC:
@@ -93,7 +93,7 @@ class GNet(nn.Module):
         self.conv0 = EqualizedConv2d(dimMapping, dimMapping, 3, equalized=True,
                                      initBiasToZero=True, padding=1)
 
-        self.activation = torch.nn.LeakyReLU(leakyReluLeak)
+        self.activation = torch.nn.LeakyReLU(leakyReluLeak, inplace=False)
         self.alpha = 0
         self.generationActivation = generationActivation
         self.dimOutput = dimOutput
@@ -155,10 +155,11 @@ class GNet(nn.Module):
         batchSize = x.size(0)
         mapping = self.mapping(self.noramlizationLayer(x))
         if self.training:
-            self.mean_w = self.gamma_avg * self.mean_w + (1-self.gamma_avg) * mapping.mean(dim=0, keepdim=True)
+            # self.mean_w = self.gamma_avg * self.mean_w + (1-self.gamma_avg) * mapping.mean(dim=0, keepdim=True)
+            self.mean_w.data = self.gamma_avg * self.mean_w.data + (1-self.gamma_avg) * mapping.mean(dim=0, keepdim=True)
 
         if self.phiTruncation < 1:
-            mapping = self.mean_w + self.phiTruncation * (mapping - self.mean_w)
+            mapping = self.mean_w.data + self.phiTruncation * (mapping - self.mean_w.data)
 
         feature = self.baseScale0.expand(batchSize, -1, 4, 4)
         feature = feature + self.noiseMod00(torch.randn((batchSize, 1, 4, 4), device=x.device))

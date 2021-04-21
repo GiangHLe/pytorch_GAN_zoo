@@ -27,6 +27,9 @@ def getTrainer(name):
 
 if __name__ == "__main__":
 
+    import torch
+    torch.autograd.set_detect_anomaly(True)
+
     parser = argparse.ArgumentParser(description='Testing script')
     parser.add_argument('model_name', type=str,
                         help='Name of the model to launch, available models are\
